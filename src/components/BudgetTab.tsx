@@ -5,7 +5,7 @@ import { db } from "@/lib/supabase";
 import { won } from "@/lib/format";
 import type { BudgetItem } from "@/lib/types";
 
-export default function BudgetTab({ tripId, people }: { tripId: string; people: number }) {
+export default function BudgetTab({ tripId, people, readOnly }: { tripId: string; people: number; readOnly?: boolean }) {
   const [items, setItems] = useState<BudgetItem[]>([]);
   const [text, setText] = useState("");
   const [amount, setAmount] = useState("");
@@ -46,15 +46,15 @@ export default function BudgetTab({ tripId, people }: { tripId: string; people: 
         {items.map((item) => (
           <li key={item.id}>
             <span>{item.text} — {won(Number(item.amount))}원</span>
-            <button className="icon" aria-label="삭제" onClick={() => remove(item)}>✕</button>
+            {!readOnly && <button className="icon" aria-label="삭제" onClick={() => remove(item)}>✕</button>}
           </li>
         ))}
       </ul>
-      <form className="add" onSubmit={add}>
+      {!readOnly && <form className="add" onSubmit={add}>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="항목 (항공, 숙박…)" />
         <input type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="금액" />
         <button>추가</button>
-      </form>
+      </form>}
     </>
   );
 }

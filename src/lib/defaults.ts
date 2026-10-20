@@ -1,10 +1,17 @@
 export const STOP_TYPES: Record<string, string> = {
+  집: "🏠",
   공항: "✈️",
   숙소: "🏨",
   관광지: "📍",
   식당: "🍴",
   기타: "⭐",
 };
+
+/** 새 여행의 첫 동선 행 */
+export const DEFAULT_STOPS = [
+  { type: "집", name: "" },
+  { type: "공항", name: "" },
+];
 
 export const DEFAULT_CHECKLIST = [
   "여권 유효기간 확인 (6개월 이상)",

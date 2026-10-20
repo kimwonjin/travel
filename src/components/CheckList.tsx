@@ -5,10 +5,10 @@ import { db } from "@/lib/supabase";
 import { PACKING_CATEGORIES } from "@/lib/defaults";
 import type { CheckItem } from "@/lib/types";
 
-type Props = { table: "checklist_items" | "packing_items"; tripId: string; grouped?: boolean };
+type Props = { table: "checklist_items" | "packing_items"; tripId: string; grouped?: boolean; readOnly?: boolean };
 
 /** 체크리스트·짐 목록 공용. grouped면 category별로 묶어서 보여준다. */
-export default function CheckList({ table, tripId, grouped }: Props) {
+export default function CheckList({ table, tripId, grouped, readOnly }: Props) {
   const [items, setItems] = useState<CheckItem[]>([]);
   const [text, setText] = useState("");
   const [category, setCategory] = useState(PACKING_CATEGORIES[0]);
@@ -60,16 +60,16 @@ export default function CheckList({ table, tripId, grouped }: Props) {
             <ul className="list">
               {list.map((item) => (
                 <li key={item.id} className={item.done ? "done" : ""}>
-                  <input type="checkbox" checked={item.done} onChange={() => toggle(item)} />
+                  <input type="checkbox" checked={item.done} disabled={readOnly} onChange={() => toggle(item)} />
                   <span>{item.text}</span>
-                  <button className="icon" aria-label="삭제" onClick={() => remove(item)}>✕</button>
+                  {!readOnly && <button className="icon" aria-label="삭제" onClick={() => remove(item)}>✕</button>}
                 </li>
               ))}
             </ul>
           </div>
         );
       })}
-      <form className="add" onSubmit={add}>
+      {!readOnly && <form className="add" onSubmit={add}>
         {grouped && (
           <select value={category} onChange={(e) => setCategory(e.target.value)}>
             {PACKING_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
@@ -77,7 +77,7 @@ export default function CheckList({ table, tripId, grouped }: Props) {
         )}
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder={grouped ? "물품 추가" : "항목 추가"} />
         <button>추가</button>
-      </form>
+      </form>}
     </>
   );
 }
