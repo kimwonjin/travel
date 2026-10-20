@@ -33,17 +33,22 @@ async function createTrip(fields: Partial<Trip> = {}, stops: Partial<CourseStop>
   const client = db();
   const { data: trip, error } = await client.from("trips").insert(fields).select().single();
   if (error) throw error;
-  await client.from("checklist_items").insert(
-    DEFAULT_CHECKLIST.map((text, position) => ({ trip_id: trip.id, text, position })),
-  );
-  await client.from("packing_items").insert(
-    Object.entries(DEFAULT_PACKING).flatMap(([category, texts]) =>
-      texts.map((text, position) => ({ trip_id: trip.id, category, text, position })),
+  // 기본 항목은 동시에 저장해서 첫 화면을 빨리 띄운다
+  const results = await Promise.all([
+    client.from("checklist_items").insert(
+      DEFAULT_CHECKLIST.map((text, position) => ({ trip_id: trip.id, text, position })),
     ),
-  );
-  if (stops.length) {
-    await client.from("stops").insert(stops.map((s, position) => ({ ...s, position, trip_id: trip.id })));
-  }
+    client.from("packing_items").insert(
+      Object.entries(DEFAULT_PACKING).flatMap(([category, texts]) =>
+        texts.map((text, position) => ({ trip_id: trip.id, category, text, position })),
+      ),
+    ),
+    stops.length
+      ? client.from("stops").insert(stops.map((s, position) => ({ ...s, position, trip_id: trip.id })))
+      : null,
+  ]);
+  const failed = results.find((r) => r?.error);
+  if (failed?.error) throw failed.error;
   return trip as Trip;
 }
 

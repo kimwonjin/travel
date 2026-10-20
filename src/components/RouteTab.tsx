@@ -32,6 +32,7 @@ type Props = { tripId: string; userId: string; readOnly?: boolean };
 /** 동선: 위에는 지도, 아래에는 행 추가/삭제로 순서를 짜는 표 */
 export default function RouteTab({ tripId, userId, readOnly }: Props) {
   const [stops, setStops] = useState<Stop[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState<Record<string, string>>({}); // placeKey → saved_places.id
   const [baseId, setBaseId] = useState<string | null>(null); // 추천 기준 행 (null이면 마지막 위치 있는 행)
   const [recs, setRecs] = useState<Recommendation[]>([]);
@@ -39,8 +40,12 @@ export default function RouteTab({ tripId, userId, readOnly }: Props) {
   const canEdit = !readOnly;
 
   useEffect(() => {
-    db().from("stops").select("*").eq("trip_id", tripId).order("position")
-      .then(({ data, error }) => (error ? setError(error.message) : setStops(data as Stop[])));
+    db().from("stops").select("*").eq("trip_id", tripId).order("position").order("created_at")
+      .then(({ data, error }) => {
+        if (error) setError(error.message);
+        else setStops(data as Stop[]);
+        setLoaded(true);
+      });
   }, [tripId]);
 
   useEffect(() => {
@@ -138,7 +143,7 @@ export default function RouteTab({ tripId, userId, readOnly }: Props) {
       )}
       {error && <p className="error">오류: {error}</p>}
       <p className="route-info">
-        {stops.length ? `총 ${stops.length}곳` : "아래 '행 추가'로 동선을 짜 보세요."}
+        {!loaded ? "불러오는 중…" : stops.length ? `총 ${stops.length}곳` : "아래 '행 추가'로 동선을 짜 보세요."}
         {located.length > 1 && ` · 직선거리 합계 약 ${fmtKm(total)}km`}
       </p>
 
@@ -212,7 +217,7 @@ export default function RouteTab({ tripId, userId, readOnly }: Props) {
         ))}
       </div>
       {canEdit && (
-        <button className="secondary block add-row" onClick={() => addRow()}>+ 행 추가</button>
+        <button className="secondary block add-row" disabled={!loaded} onClick={() => addRow()}>+ 행 추가</button>
       )}
 
       {base && (
