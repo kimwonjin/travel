@@ -11,7 +11,7 @@ const DEFAULTS = {
     "세면/위생": ["칫솔/치약", "세안용품", "상비약"],
     "전자기기": ["휴대폰 충전기", "보조배터리", "멀티 어댑터"],
   },
-  itinerary: [],
+  stops: [],
   budget: [],
 };
 for (const k of Object.keys(DEFAULTS.packing)) {
@@ -19,6 +19,7 @@ for (const k of Object.keys(DEFAULTS.packing)) {
 }
 
 let state = load();
+if (!state.stops) state.stops = [];
 
 function load() {
   try {
@@ -96,13 +97,6 @@ function renderPacking() {
   $("#packing select").replaceChildren(...Object.keys(state.packing).map(c => new Option(c, c)));
 }
 
-function renderItinerary() {
-  state.itinerary.sort((a, b) => a.date.localeCompare(b.date));
-  $("#itinerary-list").replaceChildren(...state.itinerary.map((it, i) =>
-    mkItem(`${it.date}  ${it.text}`, false, null,
-      () => { state.itinerary.splice(i, 1); save(); renderItinerary(); })));
-}
-
 function renderBudget() {
   const total = state.budget.reduce((s, b) => s + b.amount, 0);
   $("#budget-total").textContent = won(total);
@@ -118,6 +112,7 @@ document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", (
   document.querySelectorAll(".tab, .panel").forEach(e => e.classList.remove("active"));
   btn.classList.add("active");
   $("#" + btn.dataset.tab).classList.add("active");
+  if (btn.dataset.tab === "itinerary") showMap();
 }));
 
 // 여행 정보 입력
@@ -135,7 +130,6 @@ document.querySelectorAll("form.add").forEach(form => form.addEventListener("sub
   if (!text) return;
   if (kind === "checklist") state.checklist.push({ text, done: false });
   if (kind === "packing") state.packing[els.cat.value].push({ text, done: false });
-  if (kind === "itinerary") state.itinerary.push({ date: els.date.value, text });
   if (kind === "budget") state.budget.push({ text, amount: Number(els.amount.value) });
   save(); form.reset(); renderAll();
 }));
@@ -145,5 +139,130 @@ $("#reset").addEventListener("click", () => {
   state = structuredClone(DEFAULTS); save(); renderAll();
 });
 
-function renderAll() { renderInfo(); renderChecklist(); renderPacking(); renderItinerary(); renderBudget(); }
+function renderAll() { renderInfo(); renderChecklist(); renderPacking(); renderStops(); renderBudget(); }
+
+// ---------- 동선 지도 ----------
+const TYPES = { "공항": "✈️", "숙소": "🏨", "관광지": "📍", "식당": "🍴", "기타": "⭐" };
+$("#place-search select").replaceChildren(...Object.keys(TYPES).map(t => new Option(`${TYPES[t]} ${t}`, t)));
+
+let map, mapLayer;
+
+function showMap() {
+  if (typeof L === "undefined") {
+    $("#map").textContent = "지도 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.";
+    return;
+  }
+  if (!map) {
+    map = L.map("map").setView([37.5665, 126.978], 5);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: "© OpenStreetMap contributors",
+    }).addTo(map);
+    mapLayer = L.layerGroup().addTo(map);
+    map.on("click", e => addStop({ type: "관광지", name: "새 지점", lat: e.latlng.lat, lng: e.latlng.lng }, true));
+  }
+  setTimeout(() => { map.invalidateSize(); drawRoute(true); }, 0);
+}
+
+function km(a, b) {
+  const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLng / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+const fmtKm = d => d < 10 ? d.toFixed(1) : Math.round(d).toLocaleString("ko-KR");
+
+function drawRoute(fit) {
+  if (!map) return;
+  mapLayer.clearLayers();
+  const pts = state.stops.map(s => [s.lat, s.lng]);
+  if (pts.length > 1) L.polyline(pts, { color: "#2f80ed", weight: 4, dashArray: "8 6" }).addTo(mapLayer);
+  state.stops.forEach((s, i) => {
+    const icon = L.divIcon({ className: "", iconSize: [28, 28], iconAnchor: [14, 14],
+      html: `<div class="pin">${i + 1}</div>` });
+    L.marker([s.lat, s.lng], { icon }).bindTooltip(`${i + 1}. ${s.name}`).addTo(mapLayer);
+  });
+  if (fit && pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 14 });
+}
+
+function renderStops() {
+  const ol = $("#stop-list");
+  ol.replaceChildren();
+  let total = 0;
+  state.stops.forEach((s, i) => {
+    const leg = i ? km(state.stops[i - 1], s) : 0;
+    total += leg;
+    const li = document.createElement("li");
+    const no = document.createElement("b"); no.className = "no"; no.textContent = i + 1;
+    const name = document.createElement("input");
+    name.value = s.name; name.className = "stop-name";
+    name.addEventListener("change", () => { s.name = name.value.trim() || s.name; save(); drawRoute(); });
+    const meta = document.createElement("small");
+    meta.textContent = `${TYPES[s.type] || ""} ${s.type}` + (i ? ` · 이전 지점에서 ${fmtKm(leg)}km` : "");
+    const box = document.createElement("div"); box.className = "stop-main"; box.append(name, meta);
+    li.append(no, box,
+      btn("↑", "위로", () => move(i, -1), i === 0),
+      btn("↓", "아래로", () => move(i, 1), i === state.stops.length - 1),
+      btn("📍", "지도에서 보기", () => map && map.setView([s.lat, s.lng], 15)),
+      btn("✕", "삭제", () => { state.stops.splice(i, 1); save(); renderStops(); drawRoute(true); }));
+    ol.append(li);
+  });
+  $("#route-info").textContent = state.stops.length
+    ? `총 ${state.stops.length}곳 · 직선거리 합계 약 ${fmtKm(total)}km`
+    : "장소를 추가하면 동선이 그려져요.";
+  drawRoute();
+}
+
+function btn(text, label, fn, disabled) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "del"; b.textContent = text;
+  b.setAttribute("aria-label", label); b.disabled = !!disabled;
+  b.addEventListener("click", fn);
+  return b;
+}
+
+function move(i, d) {
+  const j = i + d;
+  [state.stops[i], state.stops[j]] = [state.stops[j], state.stops[i]];
+  save(); renderStops();
+}
+
+async function addStop(stop, lookupName) {
+  state.stops.push(stop);
+  save(); renderStops();
+  if (map) map.panTo([stop.lat, stop.lng]);
+  if (!lookupName) return;
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&accept-language=ko&lat=${stop.lat}&lon=${stop.lng}`);
+    const j = await r.json();
+    const n = j.name || (j.display_name || "").split(",")[0];
+    if (n) { stop.name = n; save(); renderStops(); }
+  } catch (e) { /* 이름 조회 실패 시 기본 이름 유지 */ }
+}
+
+$("#place-search").addEventListener("submit", async e => {
+  e.preventDefault();
+  const q = e.target.elements.q.value.trim();
+  const ul = $("#search-results");
+  ul.replaceChildren(Object.assign(document.createElement("li"), { textContent: "검색 중…" }));
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ko&q=${encodeURIComponent(q)}`);
+    const list = await r.json();
+    if (!list.length) { ul.firstChild.textContent = "검색 결과가 없어요."; return; }
+    const type = e.target.elements.type.value;
+    ul.replaceChildren(...list.map(p => {
+      const li = document.createElement("li");
+      const span = document.createElement("span"); span.textContent = p.display_name;
+      const add = document.createElement("button"); add.type = "button"; add.className = "pick"; add.textContent = "추가";
+      add.addEventListener("click", () => {
+        addStop({ type, name: (p.name || p.display_name.split(",")[0]), lat: +p.lat, lng: +p.lon });
+        ul.replaceChildren(); e.target.reset();
+        drawRoute(true);
+      });
+      li.append(span, add);
+      return li;
+    }));
+  } catch (err) {
+    ul.firstChild.textContent = "검색에 실패했어요. 지도를 직접 클릭해 추가해 보세요.";
+  }
+});
+
 renderAll();

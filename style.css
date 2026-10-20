@@ -36,3 +36,16 @@ h3 { margin: 16px 0 4px; font-size: .95rem; color: var(--muted); }
 footer { text-align: center; padding: 24px; }
 .link { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; }
 @media (max-width: 480px) { .grid { grid-template-columns: 1fr; } }
+
+#map { height: 340px; border-radius: 10px; margin-bottom: 8px; z-index: 0; }
+.route-info { margin: 4px 0 12px; font-weight: 600; }
+.hint { color: var(--muted); font-size: .85rem; margin: 4px 0 12px; }
+.stops { list-style: none; margin: 0; padding: 0; }
+.stops li { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.stop-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.stop-name { border: 0; background: none; padding: 2px 0; font-weight: 600; }
+.stop-main small { color: var(--muted); }
+.no, .pin { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: .8rem; flex: none; }
+.pin { width: 28px; height: 28px; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); font-weight: 700; }
+.del:disabled { opacity: .3; cursor: default; }
+.pick { border: 0; background: var(--accent); color: #fff; border-radius: 8px; padding: 4px 12px; cursor: pointer; }

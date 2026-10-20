@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>여행 준비</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,7 +18,7 @@
     <button class="tab active" data-tab="info">여행 정보</button>
     <button class="tab" data-tab="checklist">준비 체크리스트</button>
     <button class="tab" data-tab="packing">짐 목록</button>
-    <button class="tab" data-tab="itinerary">일정</button>
+    <button class="tab" data-tab="itinerary">동선 지도</button>
     <button class="tab" data-tab="budget">예산</button>
   </nav>
 
@@ -48,11 +49,16 @@
     </section>
 
     <section id="itinerary" class="panel">
-      <ul id="itinerary-list" class="list"></ul>
-      <form class="add" data-add="itinerary">
-        <input type="date" name="date" required>
-        <input name="text" placeholder="일정 / 장소" required><button>추가</button>
+      <div id="map"></div>
+      <p id="route-info" class="route-info">장소를 추가하면 동선이 그려져요.</p>
+      <form id="place-search" class="add">
+        <select name="type"></select>
+        <input name="q" placeholder="장소 검색 (예: 인천국제공항, 센소지)" required>
+        <button>검색</button>
       </form>
+      <ul id="search-results" class="list"></ul>
+      <p class="hint">지도를 클릭해도 지점을 추가할 수 있어요.</p>
+      <ol id="stop-list" class="stops"></ol>
     </section>
 
     <section id="budget" class="panel">
@@ -67,6 +73,7 @@
   </main>
 
   <footer><button id="reset" class="link">데이터 초기화</button></footer>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
