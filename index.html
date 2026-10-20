@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>여행 준비</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <h1>✈️ 여행 준비</h1>
+    <p id="trip-summary">여행 정보를 입력해 주세요.</p>
+    <div id="dday" class="dday"></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="info">여행 정보</button>
+    <button class="tab" data-tab="checklist">준비 체크리스트</button>
+    <button class="tab" data-tab="packing">짐 목록</button>
+    <button class="tab" data-tab="itinerary">일정</button>
+    <button class="tab" data-tab="budget">예산</button>
+  </nav>
+
+  <main>
+    <section id="info" class="panel active">
+      <form id="info-form" class="grid">
+        <label>여행지 <input name="destination" placeholder="예: 도쿄"></label>
+        <label>출발일 <input type="date" name="start"></label>
+        <label>도착일 <input type="date" name="end"></label>
+        <label>인원 <input type="number" name="people" min="1" value="1"></label>
+        <label class="wide">메모 <textarea name="memo" rows="3" placeholder="숙소, 항공편 번호 등"></textarea></label>
+      </form>
+    </section>
+
+    <section id="checklist" class="panel">
+      <div class="progress"><div id="checklist-bar"></div></div>
+      <ul id="checklist-list" class="list"></ul>
+      <form class="add" data-add="checklist"><input placeholder="항목 추가" required><button>추가</button></form>
+    </section>
+
+    <section id="packing" class="panel">
+      <div class="progress"><div id="packing-bar"></div></div>
+      <div id="packing-groups"></div>
+      <form class="add" data-add="packing">
+        <select name="cat"></select>
+        <input placeholder="물품 추가" required><button>추가</button>
+      </form>
+    </section>
+
+    <section id="itinerary" class="panel">
+      <ul id="itinerary-list" class="list"></ul>
+      <form class="add" data-add="itinerary">
+        <input type="date" name="date" required>
+        <input name="text" placeholder="일정 / 장소" required><button>추가</button>
+      </form>
+    </section>
+
+    <section id="budget" class="panel">
+      <p class="total">합계 <strong id="budget-total">0</strong>원
+        <span id="budget-per"></span></p>
+      <ul id="budget-list" class="list"></ul>
+      <form class="add" data-add="budget">
+        <input name="text" placeholder="항목 (항공, 숙박…)" required>
+        <input name="amount" type="number" min="0" placeholder="금액" required><button>추가</button>
+      </form>
+    </section>
+  </main>
+
+  <footer><button id="reset" class="link">데이터 초기화</button></footer>
+  <script src="app.js"></script>
+</body>
+</html>
