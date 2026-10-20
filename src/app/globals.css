@@ -45,6 +45,16 @@ h3 { margin: 16px 0 4px; font-size: .95rem; color: var(--muted); }
 .total { font-size: 1.1rem; }
 .total span { color: var(--muted); font-size: .85rem; }
 
+/* 로그인 */
+.login { max-width: 400px; margin: 24px auto; }
+.login h2 { margin-top: 0; }
+.login hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0 8px; }
+.login form { display: flex; flex-direction: column; gap: 10px; }
+.primary { border: 0; background: var(--accent); color: #fff; padding: 10px 16px; border-radius: 8px; cursor: pointer; font: inherit; }
+.primary:disabled { opacity: .6; }
+.link { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; }
+footer { text-align: center; padding: 24px; }
+
 /* 동선 지도 */
 .map { height: 420px; border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
 .route-info { margin: 4px 0 12px; font-weight: 600; }

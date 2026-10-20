@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { db, supabase } from "@/lib/supabase";
 import { DEFAULT_CHECKLIST, DEFAULT_PACKING } from "@/lib/defaults";
 import { dday } from "@/lib/format";
@@ -9,6 +10,7 @@ import RouteTab from "./RouteTab";
 import InfoTab from "./InfoTab";
 import CheckList from "./CheckList";
 import BudgetTab from "./BudgetTab";
+import PhoneLogin from "./PhoneLogin";
 
 const TABS = [
   ["route", "동선 지도"],
@@ -19,15 +21,9 @@ const TABS = [
 ] as const;
 type TabId = (typeof TABS)[number][0];
 
-/** 익명 로그인 후 사용자의 첫 여행을 불러오고, 없으면 기본 항목과 함께 만든다. */
+/** 로그인한 사용자의 첫 여행을 불러오고, 없으면 기본 항목과 함께 만든다. */
 async function loadOrCreateTrip(): Promise<Trip> {
   const client = db();
-  const { data: { session } } = await client.auth.getSession();
-  if (!session) {
-    const { error } = await client.auth.signInAnonymously();
-    if (error) throw error;
-  }
-
   const { data: trips, error } = await client.from("trips").select("*").order("created_at").limit(1);
   if (error) throw error;
   if (trips.length) return trips[0] as Trip;
@@ -46,6 +42,8 @@ async function loadOrCreateTrip(): Promise<Trip> {
 }
 
 export default function TravelApp() {
+  // undefined: 세션 확인 중, null: 로그아웃 상태
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TabId>("route");
@@ -53,8 +51,20 @@ export default function TravelApp() {
 
   useEffect(() => {
     if (!supabase) return;
-    loadOrCreateTrip().then(setTrip, (e) => setError(e.message ?? String(e)));
+    const { data } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => data.subscription.unsubscribe();
   }, []);
+
+  const userId = session?.user.id;
+  useEffect(() => {
+    if (!userId) return;
+    loadOrCreateTrip().then(setTrip, (e) => setError(e.message ?? String(e)));
+  }, [userId]);
+
+  async function logout() {
+    await db().auth.signOut();
+    setTrip(null);
+  }
 
   // 입력할 때마다 화면은 바로 바꾸고, 저장은 잠시 모아서 한 번에
   function updateTrip(patch: Partial<Trip>) {
@@ -74,6 +84,16 @@ export default function TravelApp() {
         <h2>Supabase 설정이 필요해요</h2>
         <p><code>.env.example</code>을 <code>.env.local</code>로 복사하고 Supabase URL과 키를 입력해 주세요.</p>
       </main>
+    );
+  }
+
+  if (session === undefined) return <main><p className="muted">불러오는 중…</p></main>;
+  if (session === null) {
+    return (
+      <>
+        <header className="hero"><h1>✈️ 여행 준비</h1></header>
+        <PhoneLogin />
+      </>
     );
   }
 
@@ -111,6 +131,9 @@ export default function TravelApp() {
           </section>
         )}
       </main>
+      <footer>
+        <button className="link" onClick={logout}>로그아웃 ({session.user.phone ? "+" + session.user.phone : ""})</button>
+      </footer>
     </>
   );
 }
