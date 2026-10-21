@@ -25,7 +25,7 @@
 ### 2. Google Maps
 1. Google Cloud Console에서 프로젝트 생성 후 결제 계정 연결
 2. **Maps JavaScript API**, **Places API (New)**, **Geocoding API** 사용 설정
-3. API 키 발급 (HTTP 리퍼러로 도메인 제한 권장)
+3. API 키 발급 후 **웹사이트 제한**에 배포 주소 추가 (예: `https://travel-alpha-seven.vercel.app/*`)
 4. (선택) Map Management에서 Map ID 생성 — 없으면 `DEMO_MAP_ID` 사용
 
 ### 3. 환경 변수
