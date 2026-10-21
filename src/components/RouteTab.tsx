@@ -16,7 +16,8 @@ import { STOP_TYPES } from "@/lib/defaults";
 import { distanceKm, fmtKm } from "@/lib/format";
 import type { Recommendation, Stop } from "@/lib/types";
 
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+// 기본값은 이 앱의 브라우저용 키 (Google Cloud에서 사이트 주소로 사용 제한)
+const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyDaMuLHYXCU2IDpjpbwJJa72z3qhuuutIE";
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID || "DEMO_MAP_ID";
 const SEOUL = { lat: 37.5665, lng: 126.978 };
 
