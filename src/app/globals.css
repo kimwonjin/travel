@@ -126,3 +126,9 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
   .rt-memo { grid-area: memo; }
   .rt-actions { grid-area: act; }
 }
+
+/* 지도에서 장소 추가 확인 창 */
+.confirm-add { color: #1f2933; min-width: 180px; }
+.confirm-add small { color: #6b7785; }
+.confirm-add p { margin: 6px 0 8px; font-weight: 600; }
+.confirm-add .primary { padding: 6px 14px; }

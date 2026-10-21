@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   APIProvider,
   AdvancedMarker,
+  InfoWindow,
   Map,
   Pin,
   Polyline,
@@ -275,6 +276,7 @@ function RouteMap({ stops, numberOf, recs, onAdd }: MapProps) {
   const map = useMap();
   const placesLib = useMapsLibrary("places");
   const geocodingLib = useMapsLibrary("geocoding");
+  const [pending, setPending] = useState<PlacePick | null>(null); // 추가할지 물어보는 중인 장소
   const path = stops.map((s) => ({ lat: s.lat, lng: s.lng }));
   const fitKey = path.map((p) => `${p.lat},${p.lng}`).join("|");
 
@@ -291,7 +293,7 @@ function RouteMap({ stops, numberOf, recs, onAdd }: MapProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, fitKey]);
 
-  // 지도 클릭 → 그 장소로 새 행 추가
+  // 지도 클릭 → 그 장소 정보를 찾아 "동선에 추가할까요?" 창 띄우기
   async function handleClick(e: MapMouseEvent) {
     const { latLng, placeId } = e.detail;
     if (!latLng || !onAdd) return;
@@ -301,7 +303,7 @@ function RouteMap({ stops, numberOf, recs, onAdd }: MapProps) {
         e.stop();
         const place = new placesLib.Place({ id: placeId });
         await place.fetchFields({ fields: ["displayName", "formattedAddress", "location"] });
-        onAdd({
+        setPending({
           name: place.displayName ?? "새 장소",
           address: place.formattedAddress ?? "",
           lat: place.location?.lat() ?? latLng.lat,
@@ -315,10 +317,15 @@ function RouteMap({ stops, numberOf, recs, onAdd }: MapProps) {
         const { results } = await new geocodingLib.Geocoder().geocode({ location: latLng });
         address = results[0]?.formatted_address ?? "";
       }
-      onAdd({ name: address.split(" ").slice(-2).join(" ") || "새 장소", address, ...latLng, place_id: null });
+      setPending({ name: address.split(" ").slice(-2).join(" ") || "새 장소", address, ...latLng, place_id: null });
     } catch {
-      onAdd({ name: "새 장소", address: "", ...latLng, place_id: null });
+      setPending({ name: "새 장소", address: "", ...latLng, place_id: null });
     }
+  }
+
+  function confirmAdd() {
+    if (pending && onAdd) onAdd(pending);
+    setPending(null);
   }
 
   return (
@@ -342,12 +349,28 @@ function RouteMap({ stops, numberOf, recs, onAdd }: MapProps) {
           <AdvancedMarker
             key={`rec-${placeKey(r)}`}
             position={{ lat: r.lat, lng: r.lng }}
-            title={`추천: ${r.name} (★${r.saves})${onAdd ? " · 눌러서 동선에 추가" : ""}`}
-            onClick={onAdd ? () => onAdd(r) : undefined}
+            title={`추천: ${r.name} (★${r.saves})`}
+            onClick={onAdd ? () => setPending(r) : undefined}
           >
             <Pin background="#f2994a" borderColor="#ffffff" glyphColor="#ffffff" glyphText="★" scale={0.8} />
           </AdvancedMarker>
         ))}
+        {pending && (
+          <InfoWindow
+            position={{ lat: pending.lat, lng: pending.lng }}
+            headerContent={<b>{pending.name}</b>}
+            onCloseClick={() => setPending(null)}
+          >
+            <div className="confirm-add">
+              {pending.address && <small>{pending.address}</small>}
+              <p>동선에 추가할까요?</p>
+              <div className="row">
+                <button className="primary" onClick={confirmAdd}>추가</button>
+                <button className="link" onClick={() => setPending(null)}>취소</button>
+              </div>
+            </div>
+          </InfoWindow>
+        )}
       </Map>
     </div>
   );
